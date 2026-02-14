@@ -9,6 +9,7 @@ Endpoints:
 import base64
 import io
 import logging
+import os
 from contextlib import asynccontextmanager
 
 import numpy as np
@@ -82,10 +83,10 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS middleware for frontend
+cors_origins = os.environ.get("CORS_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,
-    # TODO: restrict to production domain
-    allow_origins=["*"],
+    allow_origins=cors_origins,
     allow_credentials=False,
     allow_methods=["GET", "POST"],
     allow_headers=["content-type"],
