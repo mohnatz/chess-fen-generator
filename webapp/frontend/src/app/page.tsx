@@ -204,7 +204,7 @@ export default function Home() {
               exit={{ opacity: 0, y: -20 }}
               className="w-full"
             >
-              <ResultCard result={displayResult} activeColor={activeColor} onActiveColorChange={setActiveColor} castling={castling} onCastlingChange={setCastling} onReset={handleReset} />
+              <ResultCard result={displayResult} activeColor={activeColor} onActiveColorChange={setActiveColor} castling={castling} onCastlingChange={setCastling} onReset={handleReset} file={selectedFile!} />
             </motion.div>
           ) : selectedFile && previewUrl ? (
             <motion.div
@@ -423,7 +423,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-amber-glow/10 py-6">
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-xs text-text-muted">
-          <span>Built with computer vision & neural networks</span>
+          <span>Created by <a href="https://github.com/mohnatz" target="_blank" rel="noopener noreferrer" className="hover:text-amber-glow transition-colors">mohnatz</a></span>
           <span>
             <Link href="/about" className="hover:text-amber-glow transition-colors">
               How it works →

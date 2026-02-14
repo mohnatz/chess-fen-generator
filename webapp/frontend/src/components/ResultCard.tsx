@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { CastlingRights } from '@/app/page';
+import PipelineSteps from './PipelineSteps';
 
 interface ResultCardProps {
   result: {
@@ -28,9 +29,10 @@ interface ResultCardProps {
   castling: CastlingRights;
   onCastlingChange: (castling: CastlingRights) => void;
   onReset: () => void;
+  file: File;
 }
 
-export default function ResultCard({ result, activeColor, onActiveColorChange, castling, onCastlingChange, onReset }: ResultCardProps) {
+export default function ResultCard({ result, activeColor, onActiveColorChange, castling, onCastlingChange, onReset, file }: ResultCardProps) {
   const [copied, setCopied] = useState(false);
   const [copiedStandard, setCopiedStandard] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -366,6 +368,9 @@ export default function ResultCard({ result, activeColor, onActiveColorChange, c
             </div>
           </motion.div>
         </div>
+
+        {/* Pipeline Visualization */}
+        <PipelineSteps file={file} />
       </div>
     </motion.div>
   );

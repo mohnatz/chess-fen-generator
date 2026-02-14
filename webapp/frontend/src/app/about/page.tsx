@@ -109,28 +109,54 @@ export default function AboutPage() {
             </h2>
             <div className="bg-bg-surface rounded-xl p-6 border border-amber-glow/10">
               <p className="text-text-secondary leading-relaxed mb-4">
-                The key insight is that chessboard grid lines produce distinctive gradient patterns.
-                Each line has both a dark-to-light and light-to-dark transition (due to alternating
-                square colors), while piece edges typically only have one direction.
+                The board detection pipeline is adapted from{' '}
+                <a href="https://github.com/kratos606/chessboard-recogniser" target="_blank" rel="noopener noreferrer" className="text-amber-glow hover:underline">
+                  kratos606/chessboard-recogniser
+                </a>
+                , which uses gradient projection to locate chessboard grid lines.
+                The key insight is that grid lines produce both dark-to-light and light-to-dark
+                transitions, while piece edges typically only have one direction.
               </p>
-              <ol className="space-y-3 text-text-secondary text-sm">
+
+              <h3 className="text-text-primary font-medium mb-3 text-sm uppercase tracking-wide">Core algorithm (from kratos606)</h3>
+              <ol className="space-y-3 text-text-secondary text-sm mb-6">
                 <li className="flex gap-3">
                   <span className="text-amber-glow font-mono">1.</span>
-                  <span><strong className="text-text-primary">Histogram equalization</strong> — normalize contrast across different board themes</span>
+                  <span><strong className="text-text-primary">Large Sobel kernels (31×31)</strong> — highlight grid edges while suppressing piece detail</span>
                 </li>
                 <li className="flex gap-3">
                   <span className="text-amber-glow font-mono">2.</span>
-                  <span><strong className="text-text-primary">Large Sobel kernels (31×31)</strong> — smooth out piece detail while preserving grid lines</span>
+                  <span><strong className="text-text-primary">Positive × negative gradient product</strong> — sum positive and negative gradients separately along each axis, then multiply. Only real grid lines produce strong peaks</span>
                 </li>
                 <li className="flex gap-3">
                   <span className="text-amber-glow font-mono">3.</span>
-                  <span><strong className="text-text-primary">Positive × negative gradient product</strong> — multiply projections of opposing gradients; only grid lines peak strongly</span>
+                  <span><strong className="text-text-primary">Adaptive thresholding + skeletonisation</strong> — Gaussian blur and 1D non-maximum suppression to find peak positions</span>
                 </li>
                 <li className="flex gap-3">
                   <span className="text-amber-glow font-mono">4.</span>
-                  <span><strong className="text-text-primary">Find 7 equally-spaced peaks</strong> — the interior grid lines, then extend outward to get all 9 boundaries</span>
+                  <span><strong className="text-text-primary">Line pruning</strong> — find 7 equally-spaced interior lines per axis, then extend outward to get the full board edges</span>
                 </li>
               </ol>
+
+              <h3 className="text-text-primary font-medium mb-3 text-sm uppercase tracking-wide">Our additions</h3>
+              <ul className="space-y-3 text-text-secondary text-sm">
+                <li className="flex gap-3">
+                  <span className="text-success">●</span>
+                  <span><strong className="text-text-primary">Contour-based pre-crop</strong> — kratos606&apos;s pipeline assumes the board dominates the image. We added a contour-based isolation step (Canny edges, morphological closing, multiple contour strategies) that locates the board region first, so it works on real screenshots with browser chrome, sidebars, eval bars, and move lists</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="text-success">●</span>
+                  <span><strong className="text-text-primary">Relative tolerance</strong> — spacing validation scales with detected grid spacing (6% of step) instead of a fixed pixel threshold</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="text-success">●</span>
+                  <span><strong className="text-text-primary">Missing line interpolation</strong> — when only 6 lines are found with one double-gap, the 7th is interpolated</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="text-success">●</span>
+                  <span><strong className="text-text-primary">Threshold refinement</strong> — when a match is found at a low threshold, the next level is also checked to filter weak spurious edges (e.g. evaluation bars)</span>
+                </li>
+              </ul>
             </div>
           </motion.section>
 
@@ -161,6 +187,10 @@ export default function AboutPage() {
                 <li className="flex gap-3">
                   <span className="text-success">●</span>
                   <span><strong className="text-text-primary">Weighted loss:</strong> compensates for class imbalance (empty squares are most common)</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="text-success">●</span>
+                  <span><strong className="text-text-primary">100% board-level accuracy</strong> on the test set (5,000 boards / 320,000 squares)</span>
                 </li>
               </ul>
             </div>
@@ -194,7 +224,7 @@ export default function AboutPage() {
             </div>
           </motion.section>
 
-          {/* Backstory Placeholder */}
+          {/* The Story */}
           <motion.section
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -203,17 +233,48 @@ export default function AboutPage() {
             <h2 className="font-[family-name:var(--font-display)] text-2xl text-text-primary mb-4">
               The Story
             </h2>
-            <div className="bg-bg-surface rounded-xl p-6 border border-amber-glow/10">
-              <p className="text-text-secondary leading-relaxed italic">
-                {/* TODO: Add your personal backstory here */}
-                This project started as an experiment in computer vision — I wanted to see if
-                I could reliably detect a chessboard in arbitrary screenshots without relying
-                on template matching or specific board themes. The gradient projection approach
-                turned out to be surprisingly robust across different platforms (Lichess, Chess.com,
-                chess24, etc.) and even works on photos of physical boards in decent lighting.
+            <div className="bg-bg-surface rounded-xl p-6 border border-amber-glow/10 space-y-4">
+              <p className="text-text-secondary leading-relaxed">
+                I spend a lot of time watching chess videos on YouTube. Every now and then a position
+                comes up that I want to explore further — try different moves, run engine analysis,
+                understand why a line works. But the only option was to manually set up the pieces
+                on Lichess or Chess.com, square by square. It&apos;s tedious enough that I&apos;d usually
+                just skip it.
               </p>
-              <p className="text-text-muted text-sm mt-4">
-                — Your name here
+              <p className="text-text-secondary leading-relaxed">
+                Having some experience with machine learning, I wondered: could I build something
+                that takes a screenshot and gives me the position instantly? And could it actually
+                hit 100% accuracy, so I never have to double-check the output?
+              </p>
+              <p className="text-text-secondary leading-relaxed">
+                I built this project with the help of{' '}
+                <a href="https://claude.ai/claude-code" target="_blank" rel="noopener noreferrer" className="text-amber-glow hover:underline">
+                  Claude Code
+                </a>
+                . The board detection is adapted from{' '}
+                <a href="https://github.com/kratos606/chessboard-recogniser" target="_blank" rel="noopener noreferrer" className="text-amber-glow hover:underline">
+                  kratos606&apos;s chessboard-recogniser
+                </a>
+                {' '}(gradient projection, skeletonisation, line pruning), and we added contour-based
+                pre-crop, relative tolerance, missing line interpolation, and threshold refinement
+                to make it work on real-world screenshots. For piece recognition, I trained a CNN
+                ensemble on the{' '}
+                <a href="https://www.kaggle.com/datasets/koryakinp/chess-positions" target="_blank" rel="noopener noreferrer" className="text-amber-glow hover:underline">
+                  Chess Positions
+                </a>
+                {' '}dataset by Pavel Koryakin — 20,000 boards for training and 5,000 for
+                testing (1,600,000 squares total) with FEN labels. The final ensemble
+                achieves 100% board-level accuracy on the test set — every single board out of
+                5,000 identified correctly.
+              </p>
+              <p className="text-text-secondary leading-relaxed">
+                Now I just screenshot, upload, and I&apos;m analysing the position in seconds.
+              </p>
+              <p className="text-text-muted text-sm mt-2">
+                —{' '}
+                <a href="https://github.com/mohnatz" target="_blank" rel="noopener noreferrer" className="hover:text-amber-glow transition-colors">
+                  mohnatz
+                </a>
               </p>
             </div>
           </motion.section>
@@ -223,7 +284,7 @@ export default function AboutPage() {
       {/* Footer */}
       <footer className="border-t border-amber-glow/10 py-6">
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-xs text-text-muted">
-          <span>Built with computer vision & neural networks</span>
+          <span>Created by <a href="https://github.com/mohnatz" target="_blank" rel="noopener noreferrer" className="hover:text-amber-glow transition-colors">mohnatz</a></span>
           <Link href="/" className="hover:text-amber-glow transition-colors">
             ← Back to app
           </Link>

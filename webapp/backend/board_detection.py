@@ -350,6 +350,127 @@ def detect_board(image: np.ndarray) -> tuple[np.ndarray, tuple[int, int, int, in
     return cropped, bbox, True
 
 
+def detect_board_with_intermediates(image: np.ndarray) -> tuple[np.ndarray, tuple[int, int, int, int], bool, dict]:
+    """
+    Detect chessboard via gradient projection, capturing intermediate data for visualization.
+
+    Same pipeline as detect_board(), but returns a dict of intermediate values.
+
+    Args:
+        image: RGB image as numpy array
+
+    Returns:
+        cropped: The cropped board image (RGB)
+        bbox: (y0, y1, x0, x1) bounding box in original image coordinates
+        success: True if board was detected successfully
+        intermediates: dict of intermediate pipeline data
+    """
+    if image.ndim == 3 and image.shape[2] == 4:
+        image = image[:, :, :3]
+    h_orig, w_orig = image.shape[:2]
+
+    intermediates = {
+        'original': image,
+    }
+
+    # Rough crop to isolate board region
+    cropped_rough, (y_off, x_off), crop_found = rough_crop_board(image)
+    if crop_found:
+        working_image = cropped_rough
+    else:
+        working_image = image
+        y_off, x_off = 0, 0
+
+    h, w = working_image.shape[:2]
+    intermediates['working_image'] = working_image
+    intermediates['crop_bbox'] = (y_off, x_off, h, w)
+    intermediates['crop_found'] = crop_found
+
+    # Convert to grayscale
+    gray = cv2.cvtColor(working_image, cv2.COLOR_RGB2GRAY)
+
+    # Histogram equalization + normalize to float
+    equ = cv2.equalizeHist(gray)
+    norm_image = equ.astype(np.float32) / 255.0
+    intermediates['equalized'] = equ
+
+    # Compute gradients with large Sobel kernel
+    grad_x = gradientx(norm_image)
+    grad_y = gradienty(norm_image)
+    intermediates['grad_x'] = grad_x
+    intermediates['grad_y'] = grad_y
+
+    # Split into positive and negative gradients
+    Dx_pos = np.clip(grad_x, 0, None).astype(np.float64)
+    Dx_neg = np.clip(-grad_x, 0, None).astype(np.float64)
+    Dy_pos = np.clip(grad_y, 0, None).astype(np.float64)
+    Dy_neg = np.clip(-grad_y, 0, None).astype(np.float64)
+
+    # Hough-like projection: multiply positive and negative sums
+    hough_Dx = (np.sum(Dx_pos, axis=0) * np.sum(Dx_neg, axis=0)) / (h ** 2)
+    hough_Dy = (np.sum(Dy_pos, axis=1) * np.sum(Dy_neg, axis=1)) / (w ** 2)
+    intermediates['hough_Dx'] = hough_Dx
+    intermediates['hough_Dy'] = hough_Dy
+
+    # Adaptive threshold loop
+    is_match = False
+    lines_x = []
+    lines_y = []
+    a = 1
+
+    while a < 5:
+        threshold_x = np.max(hough_Dx) * (a / 5.0)
+        threshold_y = np.max(hough_Dy) * (a / 5.0)
+
+        lines_x, lines_y, is_match = get_chess_lines(
+            hough_Dx, hough_Dy, threshold_x, threshold_y, norm_image.shape
+        )
+
+        if is_match:
+            # Refinement: try next threshold level
+            if a < 4:
+                next_thresh_x = np.max(hough_Dx) * ((a + 1) / 5.0)
+                next_thresh_y = np.max(hough_Dy) * ((a + 1) / 5.0)
+                next_lx, next_ly, next_match = get_chess_lines(
+                    hough_Dx, hough_Dy, next_thresh_x, next_thresh_y, norm_image.shape
+                )
+                if next_match:
+                    lines_x, lines_y = next_lx, next_ly
+            break
+        a += 1
+
+    intermediates['lines_x'] = lines_x
+    intermediates['lines_y'] = lines_y
+
+    if not is_match:
+        intermediates['all_x'] = []
+        intermediates['all_y'] = []
+        return working_image, (y_off, h + y_off, x_off, w + x_off), False, intermediates
+
+    # Compute step sizes from the 7 interior lines
+    stepx = int(round(np.mean(np.diff(lines_x))))
+    stepy = int(round(np.mean(np.diff(lines_y))))
+
+    # Build the full 9 lines (outer edges + 7 interior)
+    all_x = [lines_x[0] - stepx] + lines_x + [lines_x[-1] + stepx]
+    all_y = [lines_y[0] - stepy] + lines_y + [lines_y[-1] + stepy]
+    intermediates['all_x'] = all_x
+    intermediates['all_y'] = all_y
+
+    # Crop bbox: exactly on the outer grid edges
+    x0 = max(0, all_x[0])
+    x1 = min(w, all_x[-1])
+    y0 = max(0, all_y[0])
+    y1 = min(h, all_y[-1])
+
+    cropped = working_image[y0:y1, x0:x1]
+
+    # Offset bbox back to original image coordinates
+    bbox = (y0 + y_off, y1 + y_off, x0 + x_off, x1 + x_off)
+
+    return cropped, bbox, True, intermediates
+
+
 def detect_board_from_file(image_path: str) -> tuple[np.ndarray, tuple[int, int, int, int], bool]:
     """
     Detect chessboard from an image file.

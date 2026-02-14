@@ -21,8 +21,12 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from board_detection import detect_board, draw_bbox_on_image
+from board_detection import detect_board, detect_board_with_intermediates, draw_bbox_on_image
 from fen_generator import load_model, predict_fen
+from pipeline_viz import (
+    viz_rough_crop, viz_equalized, viz_gradients,
+    viz_projections, viz_grid_lines,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +102,19 @@ class PredictionResponse(BaseModel):
     annotated_image_base64: str
     low_confidence_squares: list[dict]
     links: dict
+
+
+class PipelineStep(BaseModel):
+    """A single step in the detection pipeline visualization."""
+    key: str
+    title: str
+    description: str
+    image_base64: str | None
+
+
+class PipelineResponse(BaseModel):
+    """Response model for /predict/pipeline endpoint."""
+    steps: list[PipelineStep]
 
 
 class HealthResponse(BaseModel):
@@ -272,6 +289,119 @@ async def predict_base64(request: Request, data: dict):
     except Exception as e:
         logger.error("Error processing image in /predict-base64: %s", e)
         raise HTTPException(status_code=500, detail="Failed to process image. Please try a different file.")
+
+
+@app.post("/predict/pipeline", response_model=PipelineResponse)
+@limiter.limit("5/minute")
+async def predict_pipeline(request: Request, file: UploadFile = File(...)):
+    """
+    Run the board detection pipeline and return visualization of each step.
+
+    Returns images and descriptions for each stage of the detection process.
+    """
+    # Read and validate file
+    contents = await file.read()
+    if len(contents) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="File too large. Maximum size is 10 MB.")
+
+    if not _is_allowed_image(contents):
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported image format. Please upload a PNG, JPEG, or WEBP image."
+        )
+
+    try:
+        image = Image.open(io.BytesIO(contents))
+        if image.mode != "RGB":
+            image = image.convert("RGB")
+        image_array = np.array(image)
+
+        # Run detection with intermediates
+        cropped, bbox, success, intermediates = detect_board_with_intermediates(image_array)
+
+        steps: list[PipelineStep] = []
+
+        # Step 1: Finding the Board
+        crop_png = viz_rough_crop(
+            intermediates['original'],
+            intermediates['crop_bbox'],
+            intermediates['crop_found'],
+        )
+        steps.append(PipelineStep(
+            key="rough_crop",
+            title="Finding the Board",
+            description="Canny edge detection and contour analysis locate the board region, filtering out browser chrome, sidebars, and eval bars.",
+            image_base64=f"data:image/png;base64,{base64.b64encode(crop_png).decode()}",
+        ))
+
+        # Step 2: Enhancing Contrast
+        eq_png = viz_equalized(intermediates['equalized'])
+        steps.append(PipelineStep(
+            key="equalized",
+            title="Enhancing Contrast",
+            description="Histogram equalization normalizes lighting so grid lines stand out regardless of board theme.",
+            image_base64=f"data:image/png;base64,{base64.b64encode(eq_png).decode()}",
+        ))
+
+        # Step 3: Computing Edge Gradients
+        grad_png = viz_gradients(intermediates['grad_x'], intermediates['grad_y'])
+        steps.append(PipelineStep(
+            key="gradients",
+            title="Computing Edge Gradients",
+            description="A large Sobel kernel (31x31) detects edges while smoothing out piece-level detail.",
+            image_base64=f"data:image/png;base64,{base64.b64encode(grad_png).decode()}",
+        ))
+
+        # Step 4: Projecting Gradients
+        proj_png = viz_projections(
+            intermediates['hough_Dx'],
+            intermediates['hough_Dy'],
+            intermediates['lines_x'],
+            intermediates['lines_y'],
+        )
+        steps.append(PipelineStep(
+            key="projections",
+            title="Projecting Gradients",
+            description="Positive and negative gradients are multiplied along each axis. Only real grid lines \u2014 which have both dark-to-light and light-to-dark transitions \u2014 produce strong peaks.",
+            image_base64=f"data:image/png;base64,{base64.b64encode(proj_png).decode()}",
+        ))
+
+        # Step 5: Detecting Grid Lines (only if detection succeeded)
+        if success and intermediates['all_x'] and intermediates['all_y']:
+            grid_png = viz_grid_lines(
+                intermediates['working_image'],
+                intermediates['all_x'],
+                intermediates['all_y'],
+            )
+            steps.append(PipelineStep(
+                key="grid_lines",
+                title="Detecting Grid Lines",
+                description="An adaptive threshold finds 7 equally-spaced interior lines per axis. Adding outer boundaries gives the full 9x9 grid.",
+                image_base64=f"data:image/png;base64,{base64.b64encode(grid_png).decode()}",
+            ))
+        else:
+            steps.append(PipelineStep(
+                key="grid_lines",
+                title="Detecting Grid Lines",
+                description="Grid line detection was unsuccessful. The adaptive threshold could not find 7 equally-spaced interior lines per axis.",
+                image_base64=None,
+            ))
+
+        # Step 6: Classifying Squares (text-only)
+        steps.append(PipelineStep(
+            key="classification",
+            title="Classifying Squares",
+            description="The detected board is divided into 64 squares (40x40 pixels each). A CNN ensemble classifies each square as one of 13 classes: 6 white pieces, 6 black pieces, or empty.",
+            image_base64=None,
+        ))
+
+        return PipelineResponse(steps=steps)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error processing image in /predict/pipeline: %s", e)
+        raise HTTPException(status_code=500, detail="Failed to generate pipeline visualization.")
 
 
 if __name__ == "__main__":
