@@ -8,6 +8,11 @@ import ResultCard from '@/components/ResultCard';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
+if (typeof window !== 'undefined' && !process.env.NEXT_PUBLIC_API_URL) {
+  console.warn('NEXT_PUBLIC_API_URL is not set — falling back to http://localhost:8000. '
+    + 'Set it in Vercel dashboard and redeploy.');
+}
+
 interface PredictionResult {
   fen: string;
   fen_standard: string;
