@@ -1,0 +1,19 @@
+# Web framework
+fastapi>=0.110.0,<1.0.0
+uvicorn[standard]>=0.29.0,<1.0.0
+python-multipart>=0.0.9,<1.0.0
+slowapi>=0.1.9,<1.0.0
+
+# Image processing
+pillow>=10.0.0,<11.0.0
+numpy>=1.26.0,<2.0.0
+opencv-python-headless>=4.9.0,<5.0.0
+scikit-image>=0.22.0,<1.0.0
+
+# ML inference
+# TensorFlow 2.16+ bundles Keras 3 - do NOT install keras separately
+tensorflow-cpu>=2.16.0,<2.18.0
+
+# Protobuf constraint for TensorFlow compatibility
+# TF 2.17 requires: >=3.20.3,<5.0.0 (excluding 4.21.0-4.21.5)
+protobuf>=3.20.3,!=4.21.0,!=4.21.1,!=4.21.2,!=4.21.3,!=4.21.4,!=4.21.5,<5.0.0

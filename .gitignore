@@ -1,0 +1,33 @@
+# Python virtual environments
+chess_env/
+.venv/
+venv/
+env/
+
+# Training & test data (2.5 GB)
+data/
+
+# Root-level model files (duplicates of webapp/backend/models/)
+/models/
+
+# Archived/old notebooks
+archive/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Claude Code metadata
+.claude/
