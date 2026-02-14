@@ -29,6 +29,7 @@ from pipeline_viz import (
     viz_projections, viz_grid_lines,
 )
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 # --- Constants ---
@@ -83,14 +84,26 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS middleware for frontend
-cors_origins = os.environ.get("CORS_ORIGINS", "*").split(",")
+_raw_origins = os.environ.get("CORS_ORIGINS", "*")
+cors_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+logger.info("CORS_ORIGINS env: %r -> parsed origins: %s", _raw_origins, cors_origins)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=False,
-    allow_methods=["GET", "POST"],
-    allow_headers=["content-type"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Catch-all: always return valid JSON, never an empty response."""
+    logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )
 
 
 class PredictionResponse(BaseModel):
@@ -135,7 +148,7 @@ async def health_check():
 
 @app.post("/predict", response_model=PredictionResponse)
 @limiter.limit("10/minute")
-async def predict(request: Request, file: UploadFile = File(...), active_color: str = Query("w", regex="^[wb]$")):
+async def predict(request: Request, file: UploadFile = File(...), active_color: str = Query("w", pattern="^[wb]$")):
     """
     Detect chessboard in image and predict FEN notation.
 
@@ -145,11 +158,16 @@ async def predict(request: Request, file: UploadFile = File(...), active_color: 
     Returns:
         PredictionResponse with FEN, confidence, bbox, annotated image, and analysis links
     """
+    logger.info("/predict called: filename=%s, content_type=%s, active_color=%s, origin=%s",
+                file.filename, file.content_type, active_color,
+                request.headers.get("origin", "none"))
+
     if model is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
 
     # Read and validate file size
     contents = await file.read()
+    logger.info("/predict: read %d bytes", len(contents))
     if len(contents) > MAX_FILE_SIZE:
         raise HTTPException(status_code=413, detail="File too large. Maximum size is 10 MB.")
 
@@ -163,6 +181,7 @@ async def predict(request: Request, file: UploadFile = File(...), active_color: 
     try:
         # Decode image
         image = Image.open(io.BytesIO(contents))
+        logger.info("/predict: image decoded, mode=%s, size=%s", image.mode, image.size)
 
         # Convert to RGB numpy array
         if image.mode != "RGB":
@@ -171,6 +190,7 @@ async def predict(request: Request, file: UploadFile = File(...), active_color: 
 
         # Detect board
         cropped, bbox, success = detect_board(image_array)
+        logger.info("/predict: board detection success=%s, bbox=%s", success, bbox)
 
         if not success:
             raise HTTPException(
@@ -180,6 +200,7 @@ async def predict(request: Request, file: UploadFile = File(...), active_color: 
 
         # Predict FEN
         result = predict_fen(model, cropped, active_color=active_color)
+        logger.info("/predict: FEN=%s, confidence=%.3f", result['fen'], result['avg_confidence'])
 
         # Create annotated image with bbox
         annotated = draw_bbox_on_image(image_array, bbox)
@@ -190,7 +211,7 @@ async def predict(request: Request, file: UploadFile = File(...), active_color: 
         annotated_pil.save(buffer, format="PNG")
         annotated_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
 
-        return PredictionResponse(
+        response = PredictionResponse(
             fen=result['fen'],
             fen_standard=result['fen_standard'],
             confidence=result['avg_confidence'],
@@ -200,11 +221,13 @@ async def predict(request: Request, file: UploadFile = File(...), active_color: 
             low_confidence_squares=result['low_confidence_squares'],
             links=result['links']
         )
+        logger.info("/predict: returning response successfully")
+        return response
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Error processing image in /predict: %s", e)
+        logger.exception("Error processing image in /predict")
         raise HTTPException(status_code=500, detail="Failed to process image. Please try a different file.")
 
 
