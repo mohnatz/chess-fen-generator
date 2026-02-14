@@ -11,16 +11,19 @@ Upload a screenshot from any chess website, and the app will:
 
 ### Board Detection (Computer Vision)
 
-The board detection pipeline is adapted from [kratos606/chessboard-recogniser](https://github.com/kratos606/chessboard-recogniser), which uses gradient projection to locate chessboard grid lines without relying on Hough transforms.
+The board detection pipeline is adapted from [kratos606/chessboard-recogniser](https://github.com/kratos606/chessboard-recogniser), which uses gradient projection to locate chessboard grid lines.
 
-The pipeline:
-1. **Rough crop** — contour-based isolation to find the board region in a full screenshot (handles browser UI, sidebars, etc.)
-2. **Histogram equalisation** on grayscale, normalise to float
-3. **Large-kernel Sobel gradients** (ksize=31) — smooths piece-level detail, emphasising grid edges
-4. **Positive/negative gradient product** — sum positive and negative gradients separately along each axis, then multiply. Only real grid lines (which have both dark-to-light *and* light-to-dark transitions) produce strong peaks
-5. **Adaptive thresholding + Gaussian blur + skeletonisation** to find peak positions
-6. **Line pruning** to find 7 equally-spaced interior lines per axis (with missing-line interpolation for partial detections)
-7. **Extend outward** by one step to get the 9 boundary lines (full board edges)
+**Core algorithm (from kratos606):**
+- Large-kernel Sobel gradients (ksize=31) to highlight grid edges while suppressing piece detail
+- Positive/negative gradient product — sum positive and negative gradients separately along each axis, then multiply. Only real grid lines (which have both dark-to-light *and* light-to-dark transitions) produce strong peaks
+- Adaptive thresholding + Gaussian blur + 1D skeletonisation (non-maximum suppression) to find peak positions
+- Line pruning to find 7 equally-spaced interior lines per axis, then extend outward to get the full board edges
+
+**Our additions:**
+- **Contour-based pre-crop** — kratos606's pipeline assumes the board dominates the image. We added a contour-based isolation step (Canny edges, morphological closing, 3 contour strategies scored by quadratic aspect penalty + size bonus) that locates the board region first, so the app works on real screenshots with browser chrome, sidebars, eval bars, move lists, etc.
+- **Relative tolerance** — spacing validation scales with detected grid spacing (6% of step) instead of a fixed 5px threshold
+- **Missing line interpolation** — when only 6 lines are found with one double-gap, the 7th is interpolated
+- **Threshold refinement** — when a match is found at a low threshold, the next level is also checked to filter weak spurious edges (e.g. evaluation bars)
 
 The `board_detection.ipynb` notebook walks through each step visually.
 
@@ -100,5 +103,5 @@ docker run -p 8000:8000 chess-fen-backend
 
 ## Acknowledgements
 
-- Board detection approach adapted from [kratos606/chessboard-recogniser](https://github.com/kratos606/chessboard-recogniser)
+- Board detection algorithm adapted from [kratos606/chessboard-recogniser](https://github.com/kratos606/chessboard-recogniser) (gradient projection, skeletonisation, line pruning), with added contour-based pre-crop for real-world screenshots, relative tolerance, missing line interpolation, and threshold refinement
 - Training data from [Chess Positions](https://www.kaggle.com/datasets/koryakinp/chess-positions) by Pavel Koryakin
