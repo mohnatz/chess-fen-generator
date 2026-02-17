@@ -431,7 +431,7 @@ export default function Home() {
           <span>Created by <a href="https://github.com/mohnatz" target="_blank" rel="noopener noreferrer" className="hover:text-amber-glow transition-colors">mohnatz</a></span>
           <span>
             <Link href="/about" className="hover:text-amber-glow transition-colors">
-              How it works →
+              About →
             </Link>
           </span>
         </div>

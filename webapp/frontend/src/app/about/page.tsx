@@ -47,7 +47,7 @@ export default function AboutPage() {
             transition={{ duration: 0.6 }}
           >
             <h1 className="font-[family-name:var(--font-display)] text-4xl md:text-5xl text-text-primary mb-8">
-              How It <span className="text-amber-glow">Works</span>
+              <span className="text-amber-glow">About</span>
             </h1>
           </motion.div>
 
@@ -235,11 +235,10 @@ export default function AboutPage() {
             </h2>
             <div className="bg-bg-surface rounded-xl p-6 border border-amber-glow/10 space-y-4">
               <p className="text-text-secondary leading-relaxed">
-                I spend a lot of time watching chess videos on YouTube. Every now and then a position
-                comes up that I want to explore further — try different moves, run engine analysis,
-                understand why a line works. But the only option was to manually set up the pieces
-                on Lichess or Chess.com, square by square. It&apos;s tedious enough that I&apos;d usually
-                just skip it.
+                I play chess, and when I watch chess videos I often see positions I want to
+                explore further — try different moves, run engine analysis, understand why a
+                line works. But the only option was to manually set up the pieces on Lichess
+                or Chess.com, square by square.
               </p>
               <p className="text-text-secondary leading-relaxed">
                 Having some experience with machine learning, I wondered: could I build something
@@ -284,7 +283,7 @@ export default function AboutPage() {
       {/* Footer */}
       <footer className="border-t border-amber-glow/10 py-6">
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-xs text-text-muted">
-          <span>Created by <a href="https://github.com/mohnatz" target="_blank" rel="noopener noreferrer" className="hover:text-amber-glow transition-colors">mohnatz</a></span>
+          <span>Created by <a href="https://github.com/mohnatz" target="_blank" rel="noopener noreferrer" className="hover:text-amber-glow transition-colors">mohnatz</a> for educational purposes</span>
           <Link href="/" className="hover:text-amber-glow transition-colors">
             ← Back to app
           </Link>
