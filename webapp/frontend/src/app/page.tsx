@@ -465,7 +465,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-amber-glow/10 py-6">
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-xs text-text-muted">
-          <span>Created by <a href="https://github.com/mohnatz" target="_blank" rel="noopener noreferrer" className="hover:text-amber-glow transition-colors">mohnatz</a></span>
+          <span>Created by <a href="https://github.com/mohnatz" target="_blank" rel="noopener noreferrer" className="hover:text-amber-glow transition-colors">mohnatz</a> for educational purposes</span>
           <span>
             <Link href="/about" className="hover:text-amber-glow transition-colors">
               About →

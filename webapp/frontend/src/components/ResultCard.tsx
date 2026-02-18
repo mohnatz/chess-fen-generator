@@ -55,6 +55,7 @@ export default function ResultCard({ result, activeColor, onActiveColorChange, p
   const [copied, setCopied] = useState(false);
   const [copiedStandard, setCopiedStandard] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const advancedRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -144,138 +145,158 @@ export default function ResultCard({ result, activeColor, onActiveColorChange, p
             </h2>
           </div>
           <div className="flex items-center gap-3">
-            <div className="inline-flex rounded-lg bg-bg-deep p-0.5 border border-text-muted/20">
-              <button
-                onClick={() => onActiveColorChange('w')}
-                className={`
-                  px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200
-                  flex items-center gap-1.5
-                  ${activeColor === 'w'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-text-muted hover:text-text-secondary'
-                  }
-                `}
-              >
-                <span className="w-2.5 h-2.5 rounded-full bg-white border border-gray-300 inline-block" />
-                White
-              </button>
-              <button
-                onClick={() => onActiveColorChange('b')}
-                className={`
-                  px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200
-                  flex items-center gap-1.5
-                  ${activeColor === 'b'
-                    ? 'bg-gray-800 text-white shadow-sm'
-                    : 'text-text-muted hover:text-text-secondary'
-                  }
-                `}
-              >
-                <span className="w-2.5 h-2.5 rounded-full bg-gray-800 border border-gray-600 inline-block" />
-                Black
-              </button>
-            </div>
-            <div className="inline-flex rounded-lg bg-bg-deep p-0.5 border border-text-muted/20">
-              <button
-                onClick={() => onPerspectiveChange('white')}
-                className={`
-                  px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200
-                  flex items-center gap-1.5
-                  ${perspective === 'white'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-text-muted hover:text-text-secondary'
-                  }
-                `}
-              >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                </svg>
-                White at the bottom
-              </button>
-              <button
-                onClick={() => onPerspectiveChange('black')}
-                className={`
-                  px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200
-                  flex items-center gap-1.5
-                  ${perspective === 'black'
-                    ? 'bg-gray-800 text-white shadow-sm'
-                    : 'text-text-muted hover:text-text-secondary'
-                  }
-                `}
-              >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                </svg>
-                Black at the bottom
-              </button>
-            </div>
-            <div ref={advancedRef} className="relative">
-              <button
-                onClick={() => setAdvancedOpen(!advancedOpen)}
-                className={`
-                  px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200
-                  flex items-center gap-1.5 border
-                  ${advancedOpen
-                    ? 'bg-bg-elevated border-amber-glow/30 text-amber-glow'
-                    : 'border-text-muted/20 text-text-muted hover:text-text-secondary hover:border-text-muted/40'
-                  }
-                `}
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Advanced
-                <svg className={`w-3 h-3 transition-transform duration-200 ${advancedOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              <AnimatePresence>
-                {advancedOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -4 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute right-0 top-full mt-2 z-50 w-56 bg-bg-deep border border-text-muted/20 rounded-xl shadow-lg shadow-black/30 overflow-hidden"
-                  >
-                    <div className="px-3 py-2 border-b border-text-muted/10">
-                      <span className="text-text-muted text-xs font-medium">Castling Rights</span>
-                    </div>
-                    {([
-                      { key: 'K' as const, label: 'White King-side', symbol: 'K' },
-                      { key: 'Q' as const, label: 'White Queen-side', symbol: 'Q' },
-                      { key: 'k' as const, label: 'Black King-side', symbol: 'k' },
-                      { key: 'q' as const, label: 'Black Queen-side', symbol: 'q' },
-                    ]).map(({ key, label, symbol }) => (
-                      <button
-                        key={key}
-                        onClick={() => toggleCastling(key)}
-                        className="w-full flex items-center justify-between px-3 py-2 hover:bg-bg-elevated/50 transition-colors"
-                      >
-                        <span className="text-text-secondary text-xs flex items-center gap-2">
-                          <code className="text-amber-glow/70 bg-bg-elevated px-1.5 py-0.5 rounded text-[10px] font-bold">{symbol}</code>
-                          {label}
-                        </span>
-                        <div
-                          className={`
-                            relative w-8 h-[18px] rounded-full transition-colors duration-200
-                            ${castling[key] ? 'bg-amber-glow' : 'bg-text-muted/30'}
-                          `}
+            {/* Desktop inline controls */}
+            <div className="hidden md:flex items-center gap-3">
+              <div className="inline-flex rounded-lg bg-bg-deep p-0.5 border border-text-muted/20">
+                <button
+                  onClick={() => onActiveColorChange('w')}
+                  className={`
+                    px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200
+                    flex items-center gap-1.5
+                    ${activeColor === 'w'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-text-muted hover:text-text-secondary'
+                    }
+                  `}
+                >
+                  <span className="w-2.5 h-2.5 rounded-full bg-white border border-gray-300 inline-block" />
+                  White
+                </button>
+                <button
+                  onClick={() => onActiveColorChange('b')}
+                  className={`
+                    px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200
+                    flex items-center gap-1.5
+                    ${activeColor === 'b'
+                      ? 'bg-gray-800 text-white shadow-sm'
+                      : 'text-text-muted hover:text-text-secondary'
+                    }
+                  `}
+                >
+                  <span className="w-2.5 h-2.5 rounded-full bg-gray-800 border border-gray-600 inline-block" />
+                  Black
+                </button>
+              </div>
+              <div className="inline-flex rounded-lg bg-bg-deep p-0.5 border border-text-muted/20">
+                <button
+                  onClick={() => onPerspectiveChange('white')}
+                  className={`
+                    px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200
+                    flex items-center gap-1.5
+                    ${perspective === 'white'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-text-muted hover:text-text-secondary'
+                    }
+                  `}
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                  </svg>
+                  White at the bottom
+                </button>
+                <button
+                  onClick={() => onPerspectiveChange('black')}
+                  className={`
+                    px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200
+                    flex items-center gap-1.5
+                    ${perspective === 'black'
+                      ? 'bg-gray-800 text-white shadow-sm'
+                      : 'text-text-muted hover:text-text-secondary'
+                    }
+                  `}
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                  </svg>
+                  Black at the bottom
+                </button>
+              </div>
+              <div ref={advancedRef} className="relative">
+                <button
+                  onClick={() => setAdvancedOpen(!advancedOpen)}
+                  className={`
+                    px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200
+                    flex items-center gap-1.5 border
+                    ${advancedOpen
+                      ? 'bg-bg-elevated border-amber-glow/30 text-amber-glow'
+                      : 'border-text-muted/20 text-text-muted hover:text-text-secondary hover:border-text-muted/40'
+                    }
+                  `}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Advanced
+                  <svg className={`w-3 h-3 transition-transform duration-200 ${advancedOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                <AnimatePresence>
+                  {advancedOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 top-full mt-2 z-50 w-56 bg-bg-deep border border-text-muted/20 rounded-xl shadow-lg shadow-black/30 overflow-hidden"
+                    >
+                      <div className="px-3 py-2 border-b border-text-muted/10">
+                        <span className="text-text-muted text-xs font-medium">Castling Rights</span>
+                      </div>
+                      {([
+                        { key: 'K' as const, label: 'White King-side', symbol: 'K' },
+                        { key: 'Q' as const, label: 'White Queen-side', symbol: 'Q' },
+                        { key: 'k' as const, label: 'Black King-side', symbol: 'k' },
+                        { key: 'q' as const, label: 'Black Queen-side', symbol: 'q' },
+                      ]).map(({ key, label, symbol }) => (
+                        <button
+                          key={key}
+                          onClick={() => toggleCastling(key)}
+                          className="w-full flex items-center justify-between px-3 py-2 hover:bg-bg-elevated/50 transition-colors"
                         >
+                          <span className="text-text-secondary text-xs flex items-center gap-2">
+                            <code className="text-amber-glow/70 bg-bg-elevated px-1.5 py-0.5 rounded text-[10px] font-bold">{symbol}</code>
+                            {label}
+                          </span>
                           <div
                             className={`
-                              absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow-sm
-                              transition-transform duration-200
-                              ${castling[key] ? 'translate-x-[16px]' : 'translate-x-[2px]'}
+                              relative w-8 h-[18px] rounded-full transition-colors duration-200
+                              ${castling[key] ? 'bg-amber-glow' : 'bg-text-muted/30'}
                             `}
-                          />
-                        </div>
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                          >
+                            <div
+                              className={`
+                                absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow-sm
+                                transition-transform duration-200
+                                ${castling[key] ? 'translate-x-[16px]' : 'translate-x-[2px]'}
+                              `}
+                            />
+                          </div>
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
+            {/* Mobile gear icon */}
+            <button
+              onClick={() => setSettingsOpen(!settingsOpen)}
+              className={`
+                md:hidden p-2 rounded-lg transition-all duration-200 border
+                ${settingsOpen
+                  ? 'bg-bg-elevated border-amber-glow/30 text-amber-glow'
+                  : 'border-text-muted/20 text-text-muted hover:text-text-secondary hover:border-text-muted/40'
+                }
+              `}
+              aria-label="Toggle settings"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
             <button
               onClick={onReset}
               className="text-text-muted hover:text-text-primary transition-colors text-sm flex items-center gap-2"
@@ -287,6 +308,133 @@ export default function ResultCard({ result, activeColor, onActiveColorChange, p
             </button>
           </div>
         </div>
+
+        {/* Mobile settings panel */}
+        <AnimatePresence>
+          {settingsOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+              className="md:hidden overflow-hidden border-b border-amber-glow/10"
+            >
+              <div className="px-6 py-4 flex flex-col gap-4">
+                {/* Who moves next */}
+                <div>
+                  <span className="text-text-muted text-xs font-medium mb-2 block">Who moves next?</span>
+                  <div className="inline-flex rounded-lg bg-bg-deep p-0.5 border border-text-muted/20">
+                    <button
+                      onClick={() => onActiveColorChange('w')}
+                      className={`
+                        px-4 py-2 rounded-md text-sm font-medium transition-all duration-200
+                        flex items-center gap-2
+                        ${activeColor === 'w'
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-text-muted hover:text-text-secondary'
+                        }
+                      `}
+                    >
+                      <span className="w-3 h-3 rounded-full bg-white border border-gray-300 inline-block" />
+                      White
+                    </button>
+                    <button
+                      onClick={() => onActiveColorChange('b')}
+                      className={`
+                        px-4 py-2 rounded-md text-sm font-medium transition-all duration-200
+                        flex items-center gap-2
+                        ${activeColor === 'b'
+                          ? 'bg-gray-800 text-white shadow-sm'
+                          : 'text-text-muted hover:text-text-secondary'
+                        }
+                      `}
+                    >
+                      <span className="w-3 h-3 rounded-full bg-gray-800 border border-gray-600 inline-block" />
+                      Black
+                    </button>
+                  </div>
+                </div>
+
+                {/* Board perspective */}
+                <div>
+                  <span className="text-text-muted text-xs font-medium mb-2 block">Board perspective</span>
+                  <div className="inline-flex rounded-lg bg-bg-deep p-0.5 border border-text-muted/20">
+                    <button
+                      onClick={() => onPerspectiveChange('white')}
+                      className={`
+                        px-4 py-2 rounded-md text-sm font-medium transition-all duration-200
+                        flex items-center gap-2
+                        ${perspective === 'white'
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-text-muted hover:text-text-secondary'
+                        }
+                      `}
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                      </svg>
+                      White at the bottom
+                    </button>
+                    <button
+                      onClick={() => onPerspectiveChange('black')}
+                      className={`
+                        px-4 py-2 rounded-md text-sm font-medium transition-all duration-200
+                        flex items-center gap-2
+                        ${perspective === 'black'
+                          ? 'bg-gray-800 text-white shadow-sm'
+                          : 'text-text-muted hover:text-text-secondary'
+                        }
+                      `}
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                      </svg>
+                      Black at the bottom
+                    </button>
+                  </div>
+                </div>
+
+                {/* Castling rights */}
+                <div>
+                  <span className="text-text-muted text-xs font-medium mb-2 block">Castling Rights</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { key: 'K' as const, label: 'White K-side', symbol: 'K' },
+                      { key: 'Q' as const, label: 'White Q-side', symbol: 'Q' },
+                      { key: 'k' as const, label: 'Black K-side', symbol: 'k' },
+                      { key: 'q' as const, label: 'Black Q-side', symbol: 'q' },
+                    ]).map(({ key, label, symbol }) => (
+                      <button
+                        key={key}
+                        onClick={() => toggleCastling(key)}
+                        className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-bg-deep border border-text-muted/10 transition-colors"
+                      >
+                        <span className="text-text-secondary text-xs flex items-center gap-2">
+                          <code className="text-amber-glow/70 bg-bg-elevated px-1.5 py-0.5 rounded text-[10px] font-bold">{symbol}</code>
+                          {label}
+                        </span>
+                        <div
+                          className={`
+                            relative w-9 h-5 rounded-full transition-colors duration-200
+                            ${castling[key] ? 'bg-amber-glow' : 'bg-text-muted/30'}
+                          `}
+                        >
+                          <div
+                            className={`
+                              absolute top-[3px] w-[14px] h-[14px] rounded-full bg-white shadow-sm
+                              transition-transform duration-200
+                              ${castling[key] ? 'translate-x-[18px]' : 'translate-x-[3px]'}
+                            `}
+                          />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="p-6 grid md:grid-cols-2 gap-6">
           {/* Annotated Image */}
