@@ -62,7 +62,7 @@ function applyFenOverrides(
 
   // Regenerate links from the new standard FEN
   const lichessFen = newStandard.replace(/ /g, '_');
-  const encodedFen = encodeURIComponent(newStandard);
+  const encodedFen = newStandard.split('/').map(encodeURIComponent).join('/');
 
   return {
     ...result,
@@ -79,6 +79,7 @@ export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [activeColor, setActiveColor] = useState<'w' | 'b'>('w');
+  const [perspective, setPerspective] = useState<'white' | 'black'>('white');
   const [castling, setCastling] = useState<CastlingRights>({ ...DEFAULT_CASTLING });
   const [rawResult, setRawResult] = useState<PredictionResult | null>(null);
   const [showResult, setShowResult] = useState(false);
@@ -137,6 +138,7 @@ export default function Home() {
     setSelectedFile(null);
     setPreviewUrl(null);
     setActiveColor('w');
+    setPerspective('white');
     setCastling({ ...DEFAULT_CASTLING });
     setRawResult(null);
     setShowResult(false);
@@ -185,7 +187,7 @@ export default function Home() {
               About
             </Link>
             <a
-              href="https://github.com"
+              href="https://github.com/mohnatz/chess-fen-generator"
               target="_blank"
               rel="noopener noreferrer"
               className="text-text-muted hover:text-text-primary transition-colors"
@@ -209,7 +211,7 @@ export default function Home() {
               exit={{ opacity: 0, y: -20 }}
               className="w-full"
             >
-              <ResultCard result={displayResult} activeColor={activeColor} onActiveColorChange={setActiveColor} castling={castling} onCastlingChange={setCastling} onReset={handleReset} file={selectedFile!} />
+              <ResultCard result={displayResult} activeColor={activeColor} onActiveColorChange={setActiveColor} perspective={perspective} onPerspectiveChange={setPerspective} castling={castling} onCastlingChange={setCastling} onReset={handleReset} file={selectedFile!} />
             </motion.div>
           ) : selectedFile && previewUrl ? (
             <motion.div
@@ -297,6 +299,41 @@ export default function Home() {
                         >
                           <span className="w-3 h-3 rounded-full bg-gray-800 border border-gray-600 inline-block" />
                           Black to move
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Board Perspective Toggle */}
+                    <div className="mt-4 flex flex-col items-center gap-4">
+                      <span className="text-text-secondary text-sm">Which side is at the bottom of the screenshot?</span>
+                      <div className="inline-flex rounded-xl bg-bg-deep p-1 border border-text-muted/20">
+                        <button
+                          onClick={() => setPerspective('white')}
+                          className={`
+                            px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
+                            flex items-center gap-2
+                            ${perspective === 'white'
+                              ? 'bg-white text-gray-900 shadow-md'
+                              : 'text-text-muted hover:text-text-secondary'
+                            }
+                          `}
+                        >
+                          <span className="w-3 h-3 rounded-full bg-white border border-gray-300 inline-block" />
+                          White at the bottom
+                        </button>
+                        <button
+                          onClick={() => setPerspective('black')}
+                          className={`
+                            px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
+                            flex items-center gap-2
+                            ${perspective === 'black'
+                              ? 'bg-gray-800 text-white shadow-md'
+                              : 'text-text-muted hover:text-text-secondary'
+                            }
+                          `}
+                        >
+                          <span className="w-3 h-3 rounded-full bg-gray-800 border border-gray-600 inline-block" />
+                          Black at the bottom
                         </button>
                       </div>
                     </div>

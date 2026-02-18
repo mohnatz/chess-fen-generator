@@ -1,9 +1,26 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { CastlingRights } from '@/app/page';
 import PipelineSteps from './PipelineSteps';
+
+/**
+ * Flip a board FEN (ranks only, no metadata) for black's perspective.
+ * 1. Split into ranks
+ * 2. Expand digits to dots, reverse each rank string, reverse rank order
+ * 3. Re-compress dots back to digits
+ */
+function flipFen(boardFen: string): string {
+  const expand = (rank: string) => rank.replace(/\d/g, d => '.'.repeat(Number(d)));
+  const compress = (rank: string) => rank.replace(/\.+/g, m => String(m.length));
+
+  return boardFen
+    .split('/')
+    .map(r => compress([...expand(r)].reverse().join('')))
+    .reverse()
+    .join('/');
+}
 
 interface ResultCardProps {
   result: {
@@ -26,13 +43,15 @@ interface ResultCardProps {
   };
   activeColor: 'w' | 'b';
   onActiveColorChange: (color: 'w' | 'b') => void;
+  perspective: 'white' | 'black';
+  onPerspectiveChange: (perspective: 'white' | 'black') => void;
   castling: CastlingRights;
   onCastlingChange: (castling: CastlingRights) => void;
   onReset: () => void;
   file: File;
 }
 
-export default function ResultCard({ result, activeColor, onActiveColorChange, castling, onCastlingChange, onReset, file }: ResultCardProps) {
+export default function ResultCard({ result, activeColor, onActiveColorChange, perspective, onPerspectiveChange, castling, onCastlingChange, onReset, file }: ResultCardProps) {
   const [copied, setCopied] = useState(false);
   const [copiedStandard, setCopiedStandard] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -53,6 +72,37 @@ export default function ResultCard({ result, activeColor, onActiveColorChange, c
   const toggleCastling = (key: keyof CastlingRights) => {
     onCastlingChange({ ...castling, [key]: !castling[key] });
   };
+
+  // When perspective is black, flip the board FEN for display
+  const displayData = useMemo(() => {
+    if (perspective === 'white') {
+      return {
+        fen: result.fen,
+        fenStandard: result.fen_standard,
+        links: result.links,
+      };
+    }
+    // Extract the board part from fen_standard (uses /) and flip it
+    const stdParts = result.fen_standard.split(' ');
+    const flippedBoard = flipFen(stdParts[0]);
+    stdParts[0] = flippedBoard;
+    const flippedStandard = stdParts.join(' ');
+    // Simplified FEN uses dashes as separator (matching backend format)
+    const flippedSimple = flippedBoard.replace(/\//g, '-');
+    // Lichess: slashes between ranks, underscores for spaces
+    const lichessFen = flippedStandard.replace(/ /g, '_');
+    // Chess.com: full FEN as query param, keep slashes literal
+    const encodedFen = flippedStandard.split('/').map(encodeURIComponent).join('/');
+    return {
+      fen: flippedSimple,
+      fenStandard: flippedStandard,
+      links: {
+        lichess_editor: `https://lichess.org/editor/${lichessFen}`,
+        lichess_analysis: `https://lichess.org/analysis/${lichessFen}`,
+        chesscom: `https://www.chess.com/analysis?fen=${encodedFen}`,
+      },
+    };
+  }, [result, perspective]);
 
   const copyToClipboard = async (text: string, isStandard: boolean = false) => {
     await navigator.clipboard.writeText(text);
@@ -122,6 +172,40 @@ export default function ResultCard({ result, activeColor, onActiveColorChange, c
               >
                 <span className="w-2.5 h-2.5 rounded-full bg-gray-800 border border-gray-600 inline-block" />
                 Black
+              </button>
+            </div>
+            <div className="inline-flex rounded-lg bg-bg-deep p-0.5 border border-text-muted/20">
+              <button
+                onClick={() => onPerspectiveChange('white')}
+                className={`
+                  px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200
+                  flex items-center gap-1.5
+                  ${perspective === 'white'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-text-muted hover:text-text-secondary'
+                  }
+                `}
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                </svg>
+                White at the bottom
+              </button>
+              <button
+                onClick={() => onPerspectiveChange('black')}
+                className={`
+                  px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200
+                  flex items-center gap-1.5
+                  ${perspective === 'black'
+                    ? 'bg-gray-800 text-white shadow-sm'
+                    : 'text-text-muted hover:text-text-secondary'
+                  }
+                `}
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                </svg>
+                Black at the bottom
               </button>
             </div>
             <div ref={advancedRef} className="relative">
@@ -255,7 +339,7 @@ export default function ResultCard({ result, activeColor, onActiveColorChange, c
               <div className="flex items-center justify-between mb-2">
                 <span className="text-text-secondary text-sm">FEN Notation</span>
                 <button
-                  onClick={() => copyToClipboard(result.fen)}
+                  onClick={() => copyToClipboard(displayData.fen)}
                   className="text-amber-glow hover:text-amber-bright transition-colors text-sm flex items-center gap-1.5"
                 >
                   {copied ? (
@@ -276,7 +360,7 @@ export default function ResultCard({ result, activeColor, onActiveColorChange, c
                 </button>
               </div>
               <code className="fen-display block bg-bg-deep px-4 py-3 rounded-lg text-amber-glow text-sm break-all">
-                {result.fen}
+                {displayData.fen}
               </code>
 
               {/* Standard FEN */}
@@ -284,14 +368,14 @@ export default function ResultCard({ result, activeColor, onActiveColorChange, c
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-text-muted text-xs">Standard FEN</span>
                   <button
-                    onClick={() => copyToClipboard(result.fen_standard, true)}
+                    onClick={() => copyToClipboard(displayData.fenStandard, true)}
                     className="text-text-muted hover:text-amber-glow transition-colors text-xs flex items-center gap-1"
                   >
                     {copiedStandard ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
                 <code className="fen-display block text-text-muted text-xs break-all">
-                  {result.fen_standard}
+                  {displayData.fenStandard}
                 </code>
               </div>
             </div>
@@ -326,7 +410,7 @@ export default function ResultCard({ result, activeColor, onActiveColorChange, c
             {/* Analysis Links */}
             <div className="grid grid-cols-1 gap-3 mt-auto">
               <a
-                href={result.links.lichess_analysis}
+                href={displayData.links.lichess_analysis}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-3 px-4 py-3.5
@@ -340,7 +424,7 @@ export default function ResultCard({ result, activeColor, onActiveColorChange, c
 
               <div className="grid grid-cols-2 gap-3">
                 <a
-                  href={result.links.lichess_editor}
+                  href={displayData.links.lichess_editor}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 px-4 py-2.5
@@ -353,7 +437,7 @@ export default function ResultCard({ result, activeColor, onActiveColorChange, c
                 </a>
 
                 <a
-                  href={result.links.chesscom}
+                  href={displayData.links.chesscom}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 px-4 py-2.5
@@ -379,15 +463,15 @@ export default function ResultCard({ result, activeColor, onActiveColorChange, c
 function LichessIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 50 50" fill="currentColor">
-      <path d="M25 0c-5.9 0-11.5 2.1-15.9 5.9L25 25 40.9 5.9C36.5 2.1 30.9 0 25 0zM9.1 5.9C3.5 10.3 0 17.2 0 25c0 5.9 2.1 11.5 5.9 15.9L25 25 9.1 5.9zM44.1 9.1 25 25l15.9 19.1c3.8-4.4 5.9-10 5.9-15.9 0-5.9-2.1-11.5-5.9-15.9l-.8-.2zM5.9 40.9c4.4 3.8 10 5.9 15.9 5.9 5.9 0 11.5-2.1 15.9-5.9L25 25 5.9 40.9z"/>
+      <path strokeLinejoin="round" d="M38.956.5c-3.53.418-6.452.902-9.286 2.984C5.534 1.786-.692 18.533.68 29.364 3.493 50.214 31.918 55.785 41.329 41.7c-7.444 7.696-19.276 8.752-28.323 3.084C3.959 39.116-.506 27.392 4.683 17.567 9.873 7.742 18.996 4.535 29.03 6.405c2.43-1.418 5.225-3.22 7.655-3.187l-1.694 4.86 12.752 21.37c-.439 5.654-5.459 6.112-5.459 6.112-.574-1.47-1.634-2.942-4.842-6.036-3.207-3.094-17.465-10.177-15.788-16.207-2.001 6.967 10.311 14.152 14.04 17.663 3.73 3.51 5.426 6.04 5.795 6.756 0 0 9.392-2.504 7.838-8.927L37.4 7.171z"/>
     </svg>
   );
 }
 
 function ChessComIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.6 0 12 0zm0 2c5.5 0 10 4.5 10 10s-4.5 10-10 10S2 17.5 2 12 6.5 2 12 2zm-3 5v2h2v2H9v2h2v2H9v2h2v-2h2v2h2v-2h-2v-2h2v-2h-2v-2h2V9h-2v2h-2V9H9zm2 4h2v2h-2v-2z"/>
+    <svg className={className} viewBox="0 0 50 50" fill="currentColor">
+      <path d="M25 4a6 6 0 0 0-6 6c0 1.6.7 3.1 1.7 4.2-.5.3-1 .7-1.4 1.1l-2.5 2.5c-.8.8-1.3 1.7-1.5 2.7H13c-.6 0-1 .4-1 1v2c0 .6.4 1 1 1h1.3c.2 1 .7 2 1.5 2.7l2.5 2.5c.3.3.5.5.8.7l-2.6 5.1c-.5 1-.6 2.2-.3 3.3H14c-1.7 0-3 1.3-3 3v3c0 1.7 1.3 3 3 3h22c1.7 0 3-1.3 3-3v-3c0-1.7-1.3-3-3-3h-2.2c.3-1.1.2-2.3-.3-3.3l-2.6-5.1c.3-.2.6-.4.8-.7l2.5-2.5c.8-.8 1.3-1.7 1.5-2.7H37c.6 0 1-.4 1-1v-2c0-.6-.4-1-1-1h-2.3c-.2-1-.7-1.9-1.5-2.7l-2.5-2.5c-.4-.4-.9-.8-1.4-1.1A6 6 0 0 0 31 10a6 6 0 0 0-6-6z"/>
     </svg>
   );
 }
