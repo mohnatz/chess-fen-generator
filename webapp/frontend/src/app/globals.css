@@ -96,9 +96,6 @@ body {
   box-shadow: 0 0 40px rgba(212, 168, 83, 0.15);
 }
 
-.amber-glow-intense {
-  box-shadow: 0 0 60px rgba(212, 168, 83, 0.25), 0 0 120px rgba(212, 168, 83, 0.1);
-}
 
 /* FEN display styling */
 .fen-display {
@@ -106,30 +103,6 @@ body {
   letter-spacing: 0.05em;
 }
 
-/* Animated gradient border */
-@keyframes borderGlow {
-  0%, 100% {
-    border-color: rgba(212, 168, 83, 0.3);
-  }
-  50% {
-    border-color: rgba(212, 168, 83, 0.6);
-  }
-}
-
-.border-glow {
-  animation: borderGlow 3s ease-in-out infinite;
-}
-
-/* Drop zone dashed border animation */
-@keyframes dashMove {
-  to {
-    stroke-dashoffset: -16;
-  }
-}
-
-.dash-animate {
-  animation: dashMove 0.5s linear infinite;
-}
 
 /* Selection styling */
 ::selection {

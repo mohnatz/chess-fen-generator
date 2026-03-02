@@ -13,7 +13,6 @@ Pipeline:
 
 import numpy as np
 import cv2
-from skimage import io
 
 
 def gradientx(img: np.ndarray) -> np.ndarray:
@@ -264,8 +263,6 @@ def detect_board(image: np.ndarray) -> tuple[np.ndarray, tuple[int, int, int, in
     """
     if image.ndim == 3 and image.shape[2] == 4:
         image = image[:, :, :3]
-    h_orig, w_orig = image.shape[:2]
-
     # Rough crop to isolate board region
     cropped_rough, (y_off, x_off), crop_found = rough_crop_board(image)
     if crop_found:
@@ -367,8 +364,6 @@ def detect_board_with_intermediates(image: np.ndarray) -> tuple[np.ndarray, tupl
     """
     if image.ndim == 3 and image.shape[2] == 4:
         image = image[:, :, :3]
-    h_orig, w_orig = image.shape[:2]
-
     intermediates = {
         'original': image,
     }
@@ -471,21 +466,6 @@ def detect_board_with_intermediates(image: np.ndarray) -> tuple[np.ndarray, tupl
     return cropped, bbox, True, intermediates
 
 
-def detect_board_from_file(image_path: str) -> tuple[np.ndarray, tuple[int, int, int, int], bool]:
-    """
-    Detect chessboard from an image file.
-
-    Args:
-        image_path: Path to the image file
-
-    Returns:
-        cropped: The cropped board image (RGB)
-        bbox: (y0, y1, x0, x1) bounding box in original image coordinates
-        success: True if board was detected successfully
-    """
-    image = io.imread(image_path)
-    return detect_board(image)
-
 
 def draw_bbox_on_image(image: np.ndarray, bbox: tuple[int, int, int, int],
                        color: tuple = (0, 255, 0), thickness: int = 3) -> np.ndarray:
@@ -506,3 +486,4 @@ def draw_bbox_on_image(image: np.ndarray, bbox: tuple[int, int, int, int],
     annotated_bgr = cv2.cvtColor(annotated, cv2.COLOR_RGB2BGR)
     cv2.rectangle(annotated_bgr, (x0, y0), (x1, y1), color, thickness)
     return cv2.cvtColor(annotated_bgr, cv2.COLOR_BGR2RGB)
+

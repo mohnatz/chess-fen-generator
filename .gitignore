@@ -15,6 +15,7 @@ archive/
 
 # Jupyter
 .ipynb_checkpoints/
+backend_walkthrough.ipynb
 
 # Python cache
 __pycache__/
