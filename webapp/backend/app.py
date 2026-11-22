@@ -4,16 +4,18 @@ FastAPI Backend for Chess FEN Generator
 Endpoints:
 - POST /predict: Receives image, returns FEN and analysis links
 - GET /health: Health check endpoint
+- GET /stats: Usage counter (requires STATS_TOKEN)
 """
 
 import base64
 import io
 import logging
 import os
+import secrets
 from contextlib import asynccontextmanager
 
 import numpy as np
-from fastapi import FastAPI, File, Query, Request, UploadFile, HTTPException
+from fastapi import FastAPI, File, Header, Query, Request, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from PIL import Image
@@ -24,6 +26,7 @@ from slowapi.util import get_remote_address
 
 from board_detection import detect_board, detect_board_with_intermediates, draw_bbox_on_image
 from fen_generator import load_model, predict_fen
+import usage
 from pipeline_viz import (
     viz_rough_crop, viz_equalized, viz_gradients,
     viz_projections, viz_grid_lines,
@@ -65,6 +68,7 @@ async def lifespan(app: FastAPI):
     print("Loading chess piece recognition model...")
     model = load_model()
     print(f"Model loaded. Input shape: {model.input_shape}")
+    usage.init()
     yield
     # Cleanup (if needed)
     print("Shutting down...")
@@ -94,6 +98,32 @@ app.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
+
+
+# Endpoints whose calls are counted by the usage counter
+TRACKED_PATHS = {"/predict", "/predict/pipeline"}
+
+
+@app.middleware("http")
+async def track_usage(request: Request, call_next):
+    """Record every call to a tracked endpoint, whatever its outcome."""
+    if request.method != "POST" or request.url.path not in TRACKED_PATHS:
+        return await call_next(request)
+    timer = usage.Timer()
+    status = 500
+    try:
+        response = await call_next(request)
+        status = response.status_code
+        return response
+    finally:
+        usage.record(
+            endpoint=request.url.path,
+            status=status,
+            duration_ms=timer.ms(),
+            ip=usage.client_ip(request.headers, request.client.host if request.client else None),
+            origin=request.headers.get("origin"),
+            user_agent=request.headers.get("user-agent", ""),
+        )
 
 
 @app.exception_handler(Exception)
@@ -144,6 +174,27 @@ async def health_check():
         status="healthy",
         model_loaded=model is not None
     )
+
+
+@app.get("/stats")
+async def get_stats(
+    token: str | None = Query(None),
+    authorization: str | None = Header(None),
+    days: int = Query(30, ge=1, le=365),
+):
+    """
+    Usage counter summary. Disabled unless the STATS_TOKEN env var is set;
+    pass the token as ?token=... or an `Authorization: Bearer ...` header.
+    """
+    expected = os.environ.get("STATS_TOKEN", "")
+    if not expected:
+        raise HTTPException(status_code=404, detail="Not found")
+    supplied = token or ""
+    if authorization and authorization.lower().startswith("bearer "):
+        supplied = authorization[7:].strip()
+    if not secrets.compare_digest(supplied.encode(), expected.encode()):
+        raise HTTPException(status_code=401, detail="Invalid or missing token")
+    return usage.stats(days=days)
 
 
 @app.post("/predict", response_model=PredictionResponse)

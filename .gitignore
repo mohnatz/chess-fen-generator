@@ -32,3 +32,6 @@ __pycache__/
 
 # Claude Code metadata
 .claude/
+
+# Local usage counter database
+usage.db*

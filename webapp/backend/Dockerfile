@@ -16,6 +16,7 @@ COPY app.py .
 COPY board_detection.py .
 COPY fen_generator.py .
 COPY pipeline_viz.py .
+COPY usage.py .
 
 # Copy model
 COPY models/ ./models/

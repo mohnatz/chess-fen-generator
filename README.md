@@ -95,6 +95,20 @@ docker build -t chess-fen-backend .
 docker run -p 8000:8000 chess-fen-backend
 ```
 
+## Usage Counter
+
+The backend records every call to `/predict` and `/predict/pipeline` in a small SQLite database (`webapp/backend/usage.py`). It stores the timestamp, endpoint, status, duration, origin, a coarse client type (browser / script / bot) and a salted hash of the client IP, so it can count unique visitors without keeping IP addresses.
+
+To view it, set a `STATS_TOKEN` env var on the backend and open:
+
+```
+https://<backend-host>/stats?token=<STATS_TOKEN>
+```
+
+`/stats` returns 404 while `STATS_TOKEN` is unset. Add `&days=90` to change the per-day window (default 30).
+
+**Persistence on Railway:** attach a volume mounted at `/data` (the database path defaults to `/data/usage.db`; override with `USAGE_DB_PATH`). Because the container runs as a non-root user, also set `RAILWAY_RUN_UID=0` so it can write to the volume. Without a volume, counts are kept in `/tmp` and reset on each deploy.
+
 ## Tech Stack
 
 - **Backend:** FastAPI, TensorFlow/Keras, OpenCV, scikit-image, slowapi (rate limiting)
