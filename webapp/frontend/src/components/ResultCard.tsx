@@ -2,25 +2,8 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import type { CastlingRights } from '@/app/page';
+import { flipFen, type CastlingRights } from '@/lib/fen';
 import PipelineSteps from './PipelineSteps';
-
-/**
- * Flip a board FEN (ranks only, no metadata) for black's perspective.
- * 1. Split into ranks
- * 2. Expand digits to dots, reverse each rank string, reverse rank order
- * 3. Re-compress dots back to digits
- */
-function flipFen(boardFen: string): string {
-  const expand = (rank: string) => rank.replace(/\d/g, d => '.'.repeat(Number(d)));
-  const compress = (rank: string) => rank.replace(/\.+/g, m => String(m.length));
-
-  return boardFen
-    .split('/')
-    .map(r => compress([...expand(r)].reverse().join('')))
-    .reverse()
-    .join('/');
-}
 
 interface ResultCardProps {
   result: {

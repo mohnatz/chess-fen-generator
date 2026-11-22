@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import Link from 'next/link';
 import DropZone from '@/components/DropZone';
 import ResultCard from '@/components/ResultCard';
+import { flipFen, inferCastling, type CastlingRights } from '@/lib/fen';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -33,14 +34,13 @@ interface PredictionResult {
   };
 }
 
-export interface CastlingRights {
-  K: boolean;
-  Q: boolean;
-  k: boolean;
-  q: boolean;
-}
-
 const DEFAULT_CASTLING: CastlingRights = { K: true, Q: true, k: true, q: true };
+
+// Default castling rights to what the board (as currently oriented) allows
+function castlingFor(result: PredictionResult, view: 'white' | 'black'): CastlingRights {
+  const board = result.fen_standard.split(' ')[0];
+  return inferCastling(view === 'black' ? flipFen(board) : board);
+}
 
 function applyFenOverrides(
   result: PredictionResult,
@@ -86,6 +86,13 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fetchPromiseRef = useRef<Promise<PredictionResult> | null>(null);
+  const perspectiveRef = useRef<'white' | 'black'>('white');
+
+  const handlePerspectiveChange = useCallback((view: 'white' | 'black') => {
+    perspectiveRef.current = view;
+    setPerspective(view);
+    if (rawResult) setCastling(castlingFor(rawResult, view));
+  }, [rawResult]);
 
   const handleImageSelect = useCallback((file: File) => {
     setSelectedFile(file);
@@ -111,6 +118,7 @@ export default function Home() {
       }
       const data = await response.json();
       setRawResult(data);
+      setCastling(castlingFor(data, perspectiveRef.current));
       return data;
     });
 
@@ -138,6 +146,7 @@ export default function Home() {
     setSelectedFile(null);
     setPreviewUrl(null);
     setActiveColor('w');
+    perspectiveRef.current = 'white';
     setPerspective('white');
     setCastling({ ...DEFAULT_CASTLING });
     setRawResult(null);
@@ -211,7 +220,7 @@ export default function Home() {
               exit={{ opacity: 0, y: -20 }}
               className="w-full"
             >
-              <ResultCard result={displayResult} activeColor={activeColor} onActiveColorChange={setActiveColor} perspective={perspective} onPerspectiveChange={setPerspective} castling={castling} onCastlingChange={setCastling} onReset={handleReset} file={selectedFile!} />
+              <ResultCard result={displayResult} activeColor={activeColor} onActiveColorChange={setActiveColor} perspective={perspective} onPerspectiveChange={handlePerspectiveChange} castling={castling} onCastlingChange={setCastling} onReset={handleReset} file={selectedFile!} />
             </motion.div>
           ) : selectedFile && previewUrl ? (
             <motion.div
